@@ -118,6 +118,27 @@ const formatCurr = function (num, locale, currency) {
     currency: currency,
   }).format(num);
 };
+const timerLogOut = function () {
+  // declate time in seconds
+  const tick = function () {
+    let min, sec;
+    // decrease 1 sec and display new timer as min and secs
+    min = `${Math.trunc(time / 60)}`.padStart(2, 0);
+    sec = `${time % 60}`.padStart(2, 0);
+    labelTimer.textContent = `${min}:${sec}`;
+    time--;
+    // when timer reachs 0 log out
+    if (time === 0) {
+      clearInterval(timer);
+      containerApp.style.opacity = 0;
+      labelWelcome.textContent = 'Log in to get started';
+    }
+  };
+  let time = 300;
+  tick();
+  const timer = setInterval(tick, 1000);
+  return timer;
+};
 
 const displayMovements = function (acc, sort = false) {
   containerMovements.innerHTML = '';
@@ -140,8 +161,8 @@ const displayMovements = function (acc, sort = false) {
       <div class="movements__date">${displayDate}</div>
         <div class="movements__value">${formatCurr(
           mov,
-          currentAccount.locale,
-          currentAccount.currency
+          acc.locale,
+          acc.currency
         )}</div>
       </div>
     `;
@@ -154,34 +175,29 @@ const calcDisplayBalance = function (acc) {
   acc.balance = acc.movements.reduce((acc, mov) => acc + mov, 0);
   labelBalance.textContent = `${formatCurr(
     acc.balance,
-    currentAccount.locale,
-    currentAccount.currency
+    acc.locale,
+    acc.currency
   )}`;
   const now = new Date();
 
-  labelDate.textContent = Intl.DateTimeFormat(
-    currentAccount.locale,
-    currentAccount.options
-  ).format(now);
+  labelDate.textContent = Intl.DateTimeFormat(acc.locale, acc.options).format(
+    now
+  );
 };
 
 const calcDisplaySummary = function (acc) {
   const incomes = acc.movements
     .filter(mov => mov > 0)
     .reduce((acc, mov) => acc + mov, 0);
-  labelSumIn.textContent = `${formatCurr(
-    incomes,
-    currentAccount.locale,
-    currentAccount.currency
-  )}`;
+  labelSumIn.textContent = `${formatCurr(incomes, acc.locale, acc.currency)}`;
 
   const out = acc.movements
     .filter(mov => mov < 0)
     .reduce((acc, mov) => acc + mov, 0);
   labelSumOut.textContent = `${formatCurr(
     Math.abs(out),
-    currentAccount.locale,
-    currentAccount.currency
+    acc.locale,
+    acc.currency
   )}`;
 
   const interest = acc.movements
@@ -194,8 +210,8 @@ const calcDisplaySummary = function (acc) {
     .reduce((acc, int) => acc + int, 0);
   labelSumInterest.textContent = `${formatCurr(
     interest,
-    currentAccount.locale,
-    currentAccount.currency
+    acc.locale,
+    acc.currency
   )}`;
 };
 
@@ -223,7 +239,7 @@ const updateUI = function (acc) {
 
 ///////////////////////////////////////
 // Event handlers
-let currentAccount;
+let currentAccount, timer;
 
 btnLogin.addEventListener('click', function (e) {
   // Prevent form from submitting
@@ -247,6 +263,10 @@ btnLogin.addEventListener('click', function (e) {
 
     // Update UI
     updateUI(currentAccount);
+    if (timer) {
+      clearInterval(timer);
+    }
+    timer = timerLogOut();
   }
 });
 
@@ -272,6 +292,8 @@ btnTransfer.addEventListener('click', function (e) {
     receiverAcc.movementsDates.push(new Date().toISOString());
     // Update UI
     updateUI(currentAccount);
+    clearInterval(timer);
+    timer = timerLogOut();
   }
 });
 
@@ -288,6 +310,8 @@ btnLoan.addEventListener('click', function (e) {
     updateUI(currentAccount);
   }
   inputLoanAmount.value = '';
+  clearInterval(timer);
+  timer = timerLogOut();
 });
 
 btnClose.addEventListener('click', function (e) {
